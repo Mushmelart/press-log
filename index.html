@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Press Log</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #1a1a1e;
+    --surface: #26262b;
+    --surface-hover: #2f2f35;
+    --border: #3a3a42;
+    --text: #e8e8ec;
+    --text-dim: #8e8e96;
+    --accent: #4a9eff;
+    --accent-glow: rgba(74, 158, 255, 0.15);
+    --green: #34c759;
+    --green-glow: rgba(52, 199, 89, 0.15);
+    --orange: #ff9f0a;
+    --orange-glow: rgba(255, 159, 10, 0.15);
+    --red: #ff453a;
+    --red-glow: rgba(255, 69, 58, 0.15);
+    --yellow: #ffd60a;
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    padding-bottom: 100px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0 20px;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .header .datetime {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    color: var(--accent);
+  }
+
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  /* Input fields */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .field-row.triple {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .field input, .field select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    padding: 14px 12px;
+    width: 100%;
+    -webkit-appearance: none;
+  }
+
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238e8e96'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  /* Stage timers */
+  .stage-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stage {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    min-height: 64px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .stage:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+  .stage:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+
+  .stage .stage-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stage .stage-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .stage .stage-name {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .stage .stage-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .stage .stage-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 600;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  .stage .stage-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 80px;
+  }
+
+  .stage.waiting .stage-num { background: var(--accent); color: #fff; }
+  .stage.waiting .stage-btn { background: var(--accent); color: #fff; }
+
+  .stage.running .stage-num { background: var(--green); color: #fff; }
+  .stage.running { border-color: var(--green); background: var(--green-glow); }
+  .stage.running .stage-btn { background: var(--red); color: #fff; }
+  .stage.running .stage-time { color: var(--green); }
+
+  .stage.done .stage-num { background: var(--green); color: #fff; }
+  .stage.done .stage-time { color: var(--text-dim); }
+  .stage.done .stage-btn { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+
+  .stage.idle .stage-num { background: var(--border); }
+  .stage.idle .stage-btn { background: var(--surface); color: var(--text-dim); border: 1px solid var(--border); }
+
+  /* Chip selectors (multi-select) */
+  .chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chip {
+    padding: 12px 18px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.12s;
+  }
+
+  .chip b {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.5;
+  }
+
+  .chip.selected b {
+    opacity: 1;
+  }
+
+  .chip-grid-compact {
+    gap: 6px;
+  }
+
+  .chip-sm {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .chip:active { transform: scale(0.96); }
+
+  .chip.selected {
+    background: var(--accent-glow);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .chip.selected.orange {
+    background: var(--orange-glow);
+    border-color: var(--orange);
+    color: var(--orange);
+  }
+
+  .chip.selected.red {
+    background: var(--red-glow);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* Waiting timer */
+  .waiting-block {
+    display: none;
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--orange-glow);
+    border: 1px solid var(--orange);
+    border-radius: var(--radius);
+  }
+
+  .waiting-block.active { display: block; }
+
+  .waiting-block .waiting-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .waiting-block .waiting-timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--orange);
+  }
+
+  .waiting-block .waiting-label {
+    font-weight: 600;
+    color: var(--orange);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .delay-over-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--orange);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .delay-over-btn:active { transform: scale(0.98); }
+
+  /* Timed delay items */
+  .timed-delay-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .timed-delay-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .timed-delay-chip {
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.12s;
+  }
+
+  .timed-delay-chip b {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0.5;
+  }
+
+  .timed-delay-item.active .timed-delay-chip {
+    background: var(--orange-glow);
+    color: var(--orange);
+  }
+
+  .timed-delay-item.active .timed-delay-chip b { opacity: 1; }
+
+  .time-picker {
+    display: none;
+    padding: 8px 12px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .time-picker.open {
+    display: flex;
+  }
+
+  .time-picker button {
+    padding: 10px 18px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 60px;
+    transition: all 0.12s;
+  }
+
+  .time-picker button:active { transform: scale(0.95); }
+
+  .time-picker button.picked {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: #fff;
+  }
+
+  .timed-delay-selected {
+    display: none;
+    padding: 6px 18px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--orange);
+  }
+
+  .timed-delay-selected.visible { display: block; }
+
+  /* Write-in blocks */
+  .writein-block {
+    display: none;
+    margin-top: 10px;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .writein-block.visible { display: block; }
+
+  .writein-warning {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--orange);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .writein-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    padding: 12px;
+  }
+
+  .writein-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  /* Toggle */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+  }
+
+  .toggle {
+    width: 52px;
+    height: 30px;
+    border-radius: 15px;
+    background: var(--border);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+
+  .toggle.on { background: var(--accent); }
+
+  .toggle::after {
+    content: '';
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #fff;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.2s;
+  }
+
+  .toggle.on::after { transform: translateX(22px); }
+
+  .toggle-label {
+    font-size: 15px;
+    font-weight: 500;
+  }
+
+  /* Submit */
+  .submit-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: var(--surface);
+    border-top: 2px solid var(--border);
+    z-index: 100;
+  }
+
+  .submit-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .pause-btn {
+    flex: 0 0 auto;
+    padding: 18px 20px;
+    border: 2px solid var(--orange);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--orange);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .pause-btn:active { background: var(--orange-glow); }
+
+  .submit-btn {
+    flex: 1;
+    padding: 18px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--green);
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.15s;
+  }
+
+  .submit-btn:active { transform: scale(0.98); background: #2db84e; }
+  .submit-btn:disabled { background: var(--border); color: var(--text-dim); cursor: default; }
+
+  .submit-btn.success { background: var(--green); }
+  .submit-btn.error { background: var(--red); }
+
+  /* Status toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background: var(--green);
+    color: #fff;
+    padding: 14px 28px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    font-size: 16px;
+    z-index: 200;
+    transition: transform 0.3s ease;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--red); }
+
+  /* Paused job banner */
+  .paused-banner {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-bottom: 2px solid var(--orange);
+    z-index: 150;
+    flex-direction: column;
+  }
+
+  .paused-banner.visible { display: flex; }
+
+  .paused-banner-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--orange);
+    color: #fff;
+  }
+
+  .paused-banner-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .paused-icon { font-size: 18px; }
+
+  .paused-resume-btn {
+    padding: 8px 20px;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--orange);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .paused-delay-row {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: var(--orange-glow);
+  }
+
+  .paused-delay-row.visible { display: flex; }
+
+  .paused-delay-info {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--orange);
+  }
+
+  .paused-delay-timer {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .paused-resolved-btn {
+    padding: 6px 16px;
+    border-radius: 6px;
+    background: var(--green);
+    color: #fff;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .paused-resolved-btn.done {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 300;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .modal-overlay.visible { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 24px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+  }
+
+  .modal-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--orange);
+    margin-bottom: 8px;
+  }
+
+  .modal-text {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+
+  .modal-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 10px;
+    border: none;
+  }
+
+  .modal-btn-primary {
+    background: var(--orange);
+    color: #fff;
+  }
+
+  .modal-btn-secondary {
+    background: transparent;
+    border: 2px solid var(--border);
+    color: var(--text);
+  }
+
+  .modal-btn:active { transform: scale(0.98); }
+
+  /* Animations */
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .running .stage-time { animation: pulse 1.5s infinite; }
+
+  /* Cumulative total bar */
+  .cumulative-bar {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .cumulative-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+  }
+
+  .cumulative-row.total {
+    padding-top: 8px;
+  }
+
+  .cumulative-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+
+  .cumulative-row.total .cumulative-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .cumulative-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .cumulative-time.dim { color: var(--text-dim); }
+  .cumulative-time.orange { color: var(--orange); }
+
+  .cumulative-row.total .cumulative-time {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .cumulative-breakdown {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 2px 0 6px;
+    line-height: 1.6;
+  }
+
+  .cumulative-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>PRESS LOG</h1>
+  <div class="datetime" id="clock"></div>
+</div>
+
+<!-- JOB INFO -->
+<div class="section">
+  <div class="section-label">Job Info</div>
+  <div class="field-row">
+    <div class="field">
+      <label>Order #</label>
+      <input type="text" id="orderNum" inputmode="numeric" placeholder="53240">
+    </div>
+    <div class="field">
+      <label>Screens</label>
+      <input type="text" id="screens" placeholder="2F, 3SL">
+    </div>
+  </div>
+  <div class="field-row triple">
+    <div class="field">
+      <label>Piece Count</label>
+      <input type="text" id="pieceCount" inputmode="numeric" placeholder="500">
+    </div>
+    <div class="field">
+      <label>Garment Type</label>
+      <div class="chip-grid chip-grid-compact" id="garmentChips">
+        <div class="chip chip-sm" onclick="toggleChip(this)">T-Shirt</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Hoodie</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Long Sleeve</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Tank Top</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Youth Tee</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Onesie</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Tote Bag</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Bandana</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Hat</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Panels</div>
+        <div class="chip chip-sm" onclick="toggleChip(this)">Other</div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Operator</label>
+      <select id="operator">
+        <option value="">Select...</option>
+        <option value="Karen">Karen</option>
+        <option value="Ema">Ema</option>
+        <option value="Gio">Gio</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+  </div>
+  <div class="field-row">
+    <div class="field">
+      <label>Press</label>
+      <select id="press">
+        <option value="">Select...</option>
+        <option value="4000">4000</option>
+        <option value="5000">5000</option>
+        <option value="XType">XType</option>
+      </select>
+    </div>
+    <div class="toggle-row" style="align-self: center;">
+      <div class="toggle" id="doubleHitToggle" onclick="toggleDoubleHit()"></div>
+      <div class="toggle-label">Double Hit Job</div>
+    </div>
+  </div>
+</div>
+
+<!-- STAGE TIMERS -->
+<div class="section">
+  <div class="section-label">Workflow Stages — Tap to Start / Stop</div>
+  <div class="stage-flow" id="stageFlow">
+    <div class="stage waiting" data-stage="breakdown" onclick="toggleStage('breakdown')">
+      <div class="stage-left">
+        <div class="stage-num">1</div>
+        <div class="stage-name">Breakdown</div>
+      </div>
+      <div class="stage-right">
+        <div class="stage-time" id="time-breakdown">0:00</div>
+        <button class="stage-btn">Start</button>
+      </div>
+    </div>
+    <div class="stage idle" data-stage="prep" onclick="toggleStage('prep')">
+      <div class="stage-left">
+        <div class="stage-num">2</div>
+        <div class="stage-name">Prep</div>
+      </div>
+      <div class="stage-right">
+        <div class="stage-time" id="time-prep">0:00</div>
+        <button class="stage-btn">Start</button>
+      </div>
+    </div>
+    <div class="stage idle" data-stage="registration" onclick="toggleStage('registration')">
+      <div class="stage-left">
+        <div class="stage-num">3</div>
+        <div class="stage-name">Registration</div>
+      </div>
+      <div class="stage-right">
+        <div class="stage-time" id="time-registration">0:00</div>
+        <button class="stage-btn">Start</button>
+      </div>
+    </div>
+    <div class="stage idle" data-stage="sample" onclick="toggleStage('sample')">
+      <div class="stage-left">
+        <div class="stage-num">4</div>
+        <div class="stage-name">Sample & Approval</div>
+      </div>
+      <div class="stage-right">
+        <div class="stage-time" id="time-sample">0:00</div>
+        <button class="stage-btn">Start</button>
+      </div>
+    </div>
+    <div class="stage idle" data-stage="run" onclick="toggleStage('run')">
+      <div class="stage-left">
+        <div class="stage-num">5</div>
+        <div class="stage-name">Production Run</div>
+      </div>
+      <div class="stage-right">
+        <div class="stage-time" id="time-run">0:00</div>
+        <button class="stage-btn">Start</button>
+      </div>
+    </div>
+    <div class="stage idle" data-stage="break" onclick="toggleStage('break')">
+      <div class="stage-left">
+        <div class="stage-num">⏸</div>
+        <div class="stage-name">Break / Lunch</div>
+      </div>
+      <div class="stage-right">
+        <div class="stage-time" id="time-break">0:00</div>
+        <button class="stage-btn">Start</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cumulative-bar">
+    <div class="cumulative-row">
+      <span class="cumulative-label">Setup Total</span>
+      <span class="cumulative-time" id="cumSetup">0:00</span>
+    </div>
+    <div class="cumulative-breakdown" id="cumBreakdown"></div>
+    <div class="cumulative-divider"></div>
+    <div class="cumulative-row">
+      <span class="cumulative-label">Run</span>
+      <span class="cumulative-time" id="cumRun">0:00</span>
+    </div>
+    <div class="cumulative-row">
+      <span class="cumulative-label">Break</span>
+      <span class="cumulative-time dim" id="cumBreak">0:00</span>
+    </div>
+    <div class="cumulative-row">
+      <span class="cumulative-label">Waiting (Delays)</span>
+      <span class="cumulative-time orange" id="cumWaiting">0:00</span>
+    </div>
+    <div class="cumulative-row">
+      <span class="cumulative-label">Active Delays</span>
+      <span class="cumulative-time orange" id="cumTimedDelay">0:00</span>
+    </div>
+    <div class="cumulative-breakdown" id="cumTimedBreakdown" style="color: var(--orange);"></div>
+    <div class="cumulative-divider"></div>
+    <div class="cumulative-row total">
+      <span class="cumulative-label">Total Time on Job</span>
+      <span class="cumulative-time" id="cumTotal">0:00</span>
+    </div>
+  </div>
+</div>
+<div class="section">
+  <div class="section-label">Setup Activities — What did you do?</div>
+  <div class="chip-grid" id="activities">
+    <div class="chip" onclick="toggleChip(this)"><b>A</b>&ensp;Changed pallets</div>
+    <div class="chip" onclick="toggleChip(this)"><b>B</b>&ensp;Glued pallets</div>
+    <div class="chip" onclick="toggleChip(this)"><b>C</b>&ensp;Preheated platens</div>
+    <div class="chip" onclick="toggleChip(this)"><b>D</b>&ensp;Taped screens</div>
+    <div class="chip" onclick="toggleChip(this)"><b>E</b>&ensp;Detaped screens</div>
+    <div class="chip" onclick="toggleChip(this)"><b>F</b>&ensp;Cleaned area</div>
+    <div class="chip" onclick="toggleChip(this)"><b>G</b>&ensp;Cleaned dryer vents</div>
+    <div class="chip" onclick="toggleChip(this)"><b>H</b>&ensp;Color/ink change</div>
+    <div class="chip" onclick="toggleChip(this)"><b>I</b>&ensp;Ran samples</div>
+    <div class="chip" onclick="toggleChip(this)"><b>J</b>&ensp;Helped another operator</div>
+    <div class="chip" onclick="toggleChip(this)"><b>K</b>&ensp;Reviewed schedule</div>
+    <div class="chip" onclick="toggleChip(this)"><b>L</b>&ensp;Touch-ups</div>
+    <div class="chip" onclick="toggleChip(this)"><b>M</b>&ensp;Sent to reclaim</div>
+    <div class="chip" onclick="toggleChip(this)"><b>O</b>&ensp;Folded garments</div>
+    <div class="chip" onclick="toggleChip(this)"><b>Q</b>&ensp;Batched setup</div>
+    <div class="chip" onclick="toggleChip(this)"><b>N</b>&ensp;Changed squeegees</div>
+    <div class="chip" onclick="toggleChip(this)"><b>R</b>&ensp;Added ink to screens</div>
+    <div class="chip" onclick="toggleChipWritein(this, 'activityOther')" id="chipActivityOther"><b>X</b>&ensp;Other</div>
+  </div>
+  <div class="writein-block" id="activityOtherBlock">
+    <div class="writein-warning">⚠ If any of the other selections apply, choose that before using write-in.</div>
+    <input type="text" class="writein-input" id="activityOtherText" placeholder="Describe the activity…" oninput="syncWritein('activityOther')">
+  </div>
+</div>
+
+<!-- DELAYS / WAITING -->
+<div class="section">
+  <div class="section-label">Delays — Passive delays start a waiting timer. Active delays pick a time estimate.</div>
+  <div class="chip-grid" id="delays">
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>1</b>&ensp;Waiting for screens</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>2</b>&ensp;Waiting for approval</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>6</b>&ensp;Missing materials</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>7</b>&ensp;Wrong material/setup</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>5</b>&ensp;Equipment problems</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>13</b>&ensp;Safety concern</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>15</b>&ensp;Run w/ delay — belt speed</div>
+    <div class="chip orange" onclick="toggleChip(this, 'orange')"><b>16</b>&ensp;Run w/ delay — color sticking</div>
+    <div class="chip orange" onclick="toggleChipWritein(this, 'delayOther', 'orange')" id="chipDelayOther"><b>14</b>&ensp;Other delay</div>
+  </div>
+  <div class="writein-block" id="delayOtherBlock">
+    <div class="writein-warning">⚠ If any of the other selections apply, choose that before using write-in.</div>
+    <input type="text" class="writein-input" id="delayOtherText" placeholder="Describe the delay…" oninput="syncWritein('delayOther')">
+  </div>
+
+  <div class="waiting-block" id="waitingBlock">
+    <div class="waiting-header">
+      <div class="waiting-label">⏳ Currently Waiting</div>
+      <div class="waiting-timer" id="waitingTimer">0:00</div>
+    </div>
+    <button class="delay-over-btn" onclick="endDelay()">DELAY OVER — TAP TO RESUME</button>
+  </div>
+
+  <div class="section-label" style="margin-top: 16px;">Active Delays — Tap issue, then pick how long it cost you</div>
+  <div class="timed-delay-grid" id="timedDelays">
+    <div class="timed-delay-item" id="td-registration">
+      <div class="timed-delay-chip" onclick="openTimePicker('registration')"><b>3</b>&ensp;Registration problems</div>
+      <div class="time-picker" id="picker-registration">
+        <button onclick="pickTime('registration', 10)">10m</button>
+        <button onclick="pickTime('registration', 20)">20m</button>
+        <button onclick="pickTime('registration', 30)">30m</button>
+        <button onclick="pickTime('registration', 45)">45m</button>
+        <button onclick="pickTime('registration', 60)">60m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-registration"></div>
+    </div>
+    <div class="timed-delay-item" id="td-ink">
+      <div class="timed-delay-chip" onclick="openTimePicker('ink')"><b>4</b>&ensp;Ink issues</div>
+      <div class="time-picker" id="picker-ink">
+        <button onclick="pickTime('ink', 10)">10m</button>
+        <button onclick="pickTime('ink', 15)">15m</button>
+        <button onclick="pickTime('ink', 20)">20m</button>
+        <button onclick="pickTime('ink', 30)">30m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-ink"></div>
+    </div>
+    <div class="timed-delay-item" id="td-lint">
+      <div class="timed-delay-chip" onclick="openTimePicker('lint')"><b>8</b>&ensp;Lint on garments</div>
+      <div class="time-picker" id="picker-lint">
+        <button onclick="pickTime('lint', 10)">10m</button>
+        <button onclick="pickTime('lint', 20)">20m</button>
+        <button onclick="pickTime('lint', 30)">30m</button>
+        <button onclick="pickTime('lint', 45)">45m</button>
+        <button onclick="pickTime('lint', 60)">60m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-lint"></div>
+    </div>
+    <div class="timed-delay-item" id="td-screen">
+      <div class="timed-delay-chip" onclick="openTimePicker('screen')"><b>9</b>&ensp;Screen won't clear</div>
+      <div class="time-picker" id="picker-screen">
+        <button onclick="pickTime('screen', 10)">10m</button>
+        <button onclick="pickTime('screen', 15)">15m</button>
+        <button onclick="pickTime('screen', 20)">20m</button>
+        <button onclick="pickTime('screen', 30)">30m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-screen"></div>
+    </div>
+    <div class="timed-delay-item" id="td-sticking">
+      <div class="timed-delay-chip" onclick="openTimePicker('sticking')"><b>10</b>&ensp;Ink sticking/clogged</div>
+      <div class="time-picker" id="picker-sticking">
+        <button onclick="pickTime('sticking', 10)">10m</button>
+        <button onclick="pickTime('sticking', 15)">15m</button>
+        <button onclick="pickTime('sticking', 20)">20m</button>
+        <button onclick="pickTime('sticking', 30)">30m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-sticking"></div>
+    </div>
+    <div class="timed-delay-item" id="td-misprint">
+      <div class="timed-delay-chip" onclick="openTimePicker('misprint')"><b>11</b>&ensp;Misprint/reprint</div>
+      <div class="time-picker" id="picker-misprint">
+        <button onclick="pickTime('misprint', 10)">10m</button>
+        <button onclick="pickTime('misprint', 20)">20m</button>
+        <button onclick="pickTime('misprint', 30)">30m</button>
+        <button onclick="pickTime('misprint', 45)">45m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-misprint"></div>
+    </div>
+    <div class="timed-delay-item" id="td-stains">
+      <div class="timed-delay-chip" onclick="openTimePicker('stains')"><b>12</b>&ensp;Stains on garments</div>
+      <div class="time-picker" id="picker-stains">
+        <button onclick="pickTime('stains', 10)">10m</button>
+        <button onclick="pickTime('stains', 20)">20m</button>
+        <button onclick="pickTime('stains', 30)">30m</button>
+        <button onclick="pickTime('stains', 45)">45m</button>
+      </div>
+      <div class="timed-delay-selected" id="sel-stains"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ISSUES -->
+<div class="section">
+  <div class="section-label">Problems Encountered</div>
+  <div class="chip-grid" id="problems">
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P1</b>&ensp;Misprint</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P2</b>&ensp;Burned/overexposed screen</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P3</b>&ensp;Ink leak</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P4</b>&ensp;Equipment breakdown</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P5</b>&ensp;Screen reshoot needed</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P6</b>&ensp;Wrong setup</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P7</b>&ensp;Not enough materials</div>
+    <div class="chip red" onclick="toggleChip(this, 'red')"><b>P8</b>&ensp;Flash issue</div>
+    <div class="chip red" onclick="toggleChipWritein(this, 'problemOther', 'red')" id="chipProblemOther"><b>P9</b>&ensp;Other problem</div>
+  </div>
+  <div class="writein-block" id="problemOtherBlock">
+    <div class="writein-warning">⚠ If any of the other selections apply, choose that before using write-in.</div>
+    <input type="text" class="writein-input" id="problemOtherText" placeholder="Describe the problem…" oninput="syncWritein('problemOther')">
+  </div>
+</div>
+
+<div class="paused-banner" id="pausedBanner">
+  <div class="paused-banner-top">
+    <div class="paused-banner-text">
+      <span class="paused-icon">⏸</span>
+      <span><b>Job <span id="pausedOrderNum"></span></b> paused</span>
+    </div>
+    <button class="paused-resume-btn" onclick="resumePausedJob()">Resume Job</button>
+  </div>
+  <div class="paused-delay-row" id="pausedDelayRow">
+    <div class="paused-delay-info">
+      <span id="pausedDelayReason"></span>: <span class="paused-delay-timer" id="pausedDelayTimer">0:00</span>
+    </div>
+    <button class="paused-resolved-btn" id="pausedResolvedBtn" onclick="delayResolved()">Resolved ✓</button>
+  </div>
+</div>
+
+<div class="submit-bar">
+  <div class="submit-row">
+    <button class="pause-btn" id="pauseBtn" onclick="pauseAndSwitch()">⏸ Pause — Switch Jobs</button>
+    <button class="submit-btn" id="submitBtn" onclick="submitLog()">Submit Job Log</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-title">Job <span id="modalOrderNum"></span> is still open</div>
+    <div class="modal-text">You paused this job earlier. What do you want to do?</div>
+    <button class="modal-btn modal-btn-primary" onclick="resumePausedJob()">Continue Job</button>
+    <button class="modal-btn modal-btn-secondary" onclick="closePausedJob()">Close It — Job is Done</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CLOCK =====
+function updateClock() {
+  const now = new Date();
+  const opts = { weekday: 'short', month: 'short', day: 'numeric' };
+  const date = now.toLocaleDateString('en-US', opts);
+  const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  document.getElementById('clock').textContent = `${date} · ${time}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ===== STAGE TIMERS =====
+const stages = {
+  breakdown: { elapsed: 0, running: false, startedAt: null },
+  prep: { elapsed: 0, running: false, startedAt: null },
+  registration: { elapsed: 0, running: false, startedAt: null },
+  sample: { elapsed: 0, running: false, startedAt: null },
+  run: { elapsed: 0, running: false, startedAt: null },
+  break: { elapsed: 0, running: false, startedAt: null }
+};
+
+let activeStage = null;
+let waitingElapsed = 0;
+let waitingRunning = false;
+let waitingStartedAt = null;
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function toggleStage(name) {
+  const stage = stages[name];
+  
+  if (stage.running) {
+    // Stop this stage
+    stage.elapsed += Math.floor((Date.now() - stage.startedAt) / 1000);
+    stage.running = false;
+    stage.startedAt = null;
+    activeStage = null;
+    updateStageUI(name, 'done');
+  } else {
+    // Stop any currently running stage
+    if (activeStage && stages[activeStage].running) {
+      stages[activeStage].elapsed += Math.floor((Date.now() - stages[activeStage].startedAt) / 1000);
+      stages[activeStage].running = false;
+      stages[activeStage].startedAt = null;
+      updateStageUI(activeStage, 'done');
+    }
+    // Start this stage
+    stage.running = true;
+    stage.startedAt = Date.now();
+    activeStage = name;
+    updateStageUI(name, 'running');
+  }
+}
+
+function updateStageUI(name, state) {
+  const el = document.querySelector(`.stage[data-stage="${name}"]`);
+  const btn = el.querySelector('.stage-btn');
+  el.className = `stage ${state}`;
+  if (state === 'running') btn.textContent = 'Stop';
+  else if (state === 'done') btn.textContent = 'Done';
+  else if (state === 'waiting') btn.textContent = 'Start';
+  else btn.textContent = 'Start';
+}
+
+// Update all timer displays
+// ===== PAUSED JOB STATE (declared early so interval can access) =====
+let pausedJob = null;
+let bgDelayStart = null;
+let bgDelayLocked = 0;
+let bgDelayIsResolved = false;
+
+setInterval(() => {
+  let setupTotal = 0;
+  let breakdownParts = [];
+  const stageLabels = { breakdown: 'Brkdn', prep: 'Prep', registration: 'Reg', sample: 'Sample' };
+  
+  for (const [name, stage] of Object.entries(stages)) {
+    let total = stage.elapsed;
+    if (stage.running) total += Math.floor((Date.now() - stage.startedAt) / 1000);
+    document.getElementById(`time-${name}`).textContent = formatTime(total);
+    
+    if (['breakdown','prep','registration','sample'].includes(name)) {
+      setupTotal += total;
+      if (total > 0) breakdownParts.push(`${stageLabels[name]} ${formatTime(total)}`);
+    }
+  }
+  
+  let runTotal = stages.run.elapsed;
+  if (stages.run.running) runTotal += Math.floor((Date.now() - stages.run.startedAt) / 1000);
+  
+  let breakTotal = stages.break.elapsed;
+  if (stages.break.running) breakTotal += Math.floor((Date.now() - stages.break.startedAt) / 1000);
+  
+  let waitTotal = waitingElapsed;
+  if (waitingRunning) waitTotal += Math.floor((Date.now() - waitingStartedAt) / 1000);
+
+  let timedDelayTotal = Object.values(timedDelays).reduce((a,b) => a+b, 0);
+  let timedDelaySec = timedDelayTotal * 60;
+  let timedParts = [];
+  const timedLabels = {
+    registration: 'Reg', ink: 'Ink', lint: 'Lint', 
+    screen: 'Screen', sticking: 'Stick', misprint: 'Misprint', stains: 'Stains'
+  };
+  for (const [id, mins] of Object.entries(timedDelays)) {
+    if (mins > 0) timedParts.push(`${timedLabels[id]} ${mins}m`);
+  }
+
+  let grandTotal = setupTotal + runTotal + breakTotal + waitTotal + timedDelaySec;
+
+  document.getElementById('cumSetup').textContent = formatTime(setupTotal);
+  document.getElementById('cumRun').textContent = formatTime(runTotal);
+  document.getElementById('cumBreak').textContent = formatTime(breakTotal);
+  document.getElementById('cumWaiting').textContent = formatTime(waitTotal);
+  document.getElementById('cumTimedDelay').textContent = timedDelayTotal > 0 ? formatTime(timedDelaySec) : '0:00';
+  document.getElementById('cumTimedBreakdown').textContent = timedParts.length ? timedParts.join(' + ') : '';
+  document.getElementById('cumTotal').textContent = formatTime(grandTotal);
+  document.getElementById('cumBreakdown').textContent = breakdownParts.length ? breakdownParts.join(' + ') : '';
+  
+  // Waiting timer display
+  if (waitingRunning) {
+    document.getElementById('waitingTimer').textContent = formatTime(waitTotal);
+  }
+  
+  // Background paused delay timer
+  if (bgDelayStart && !bgDelayIsResolved) {
+    const bgDelay = Math.floor((Date.now() - bgDelayStart) / 1000);
+    document.getElementById('pausedDelayTimer').textContent = formatTime(bgDelay);
+  }
+}, 500);
+
+// ===== CHIP SELECTORS =====
+function toggleChip(el, color) {
+  el.classList.toggle('selected');
+  if (color) el.classList.toggle(color);
+  
+  // Check if any delay chip is selected to show waiting block
+  const anyDelay = document.querySelectorAll('#delays .chip.selected').length > 0;
+  document.getElementById('waitingBlock').classList.toggle('active', anyDelay);
+  
+  // Start waiting timer when first delay selected
+  if (anyDelay && !waitingRunning) {
+    waitingRunning = true;
+    waitingStartedAt = Date.now();
+  }
+}
+
+function toggleChipWritein(el, key, color) {
+  el.classList.toggle('selected');
+  if (color) el.classList.toggle(color);
+  const block = document.getElementById(key + 'Block');
+  const isSelected = el.classList.contains('selected');
+  block.classList.toggle('visible', isSelected);
+  if (!isSelected) {
+    document.getElementById(key + 'Text').value = '';
+  }
+  // Also trigger delay waiting block logic if this is a delay chip
+  const anyDelay = document.querySelectorAll('#delays .chip.selected').length > 0;
+  document.getElementById('waitingBlock').classList.toggle('active', anyDelay);
+  if (anyDelay && !waitingRunning) {
+    waitingRunning = true;
+    waitingStartedAt = Date.now();
+  }
+}
+
+function syncWritein(key) {
+  // No-op: value is read directly from input at submit time
+}
+
+function endDelay() {
+  // Stop waiting timer
+  if (waitingRunning) {
+    waitingElapsed += Math.floor((Date.now() - waitingStartedAt) / 1000);
+    waitingRunning = false;
+    waitingStartedAt = null;
+  }
+  
+  // Keep delay chips selected (preserves what they were waiting for)
+  // but hide the waiting block
+  document.getElementById('waitingBlock').classList.remove('active');
+  
+  showToast(`Delay logged: ${formatTime(waitingElapsed)} total wait time`, false);
+}
+
+// ===== TIMED DELAY PICKERS =====
+const timedDelays = {};
+
+function openTimePicker(id) {
+  const picker = document.getElementById(`picker-${id}`);
+  const item = document.getElementById(`td-${id}`);
+  
+  if (picker.classList.contains('open')) {
+    // Close and deselect
+    picker.classList.remove('open');
+    item.classList.remove('active');
+    delete timedDelays[id];
+    document.getElementById(`sel-${id}`).classList.remove('visible');
+    document.getElementById(`sel-${id}`).textContent = '';
+    // Unmark picked buttons
+    picker.querySelectorAll('button').forEach(b => b.classList.remove('picked'));
+  } else {
+    picker.classList.add('open');
+    item.classList.add('active');
+  }
+}
+
+function pickTime(id, minutes) {
+  const picker = document.getElementById(`picker-${id}`);
+  const sel = document.getElementById(`sel-${id}`);
+  
+  // Highlight picked button
+  picker.querySelectorAll('button').forEach(b => b.classList.remove('picked'));
+  event.target.classList.add('picked');
+  
+  timedDelays[id] = minutes;
+  sel.textContent = `⏱ ${minutes} min logged`;
+  sel.classList.add('visible');
+  
+  // Close picker after selection
+  setTimeout(() => {
+    picker.classList.remove('open');
+  }, 300);
+}
+
+// ===== PAUSED JOB FUNCTIONS =====
+
+function captureFormState() {
+  return {
+    order: document.getElementById('orderNum').value,
+    screens: document.getElementById('screens').value,
+    pieceCount: document.getElementById('pieceCount').value,
+    operator: document.getElementById('operator').value,
+    press: document.getElementById('press').value,
+    doubleHit: isDoubleHit,
+    stages: JSON.parse(JSON.stringify(stages)),
+    waitingElapsed: waitingElapsed,
+    timedDelays: Object.assign({}, timedDelays),
+    selectedGarments: getSelectedChips('garmentChips'),
+    selectedActivities: getSelectedChips('activities'),
+    selectedDelays: getSelectedChips('delays'),
+    selectedProblems: getSelectedChips('problems'),
+  };
+}
+
+function restoreFormState(state) {
+  document.getElementById('orderNum').value = state.order;
+  document.getElementById('screens').value = state.screens;
+  document.getElementById('pieceCount').value = state.pieceCount;
+  document.getElementById('operator').value = state.operator;
+  document.getElementById('press').value = state.press;
+  isDoubleHit = state.doubleHit;
+  document.getElementById('doubleHitToggle').classList.toggle('on', isDoubleHit);
+  
+  // Restore stage timers (all stopped)
+  for (const name in stages) {
+    stages[name] = state.stages[name];
+    stages[name].running = false;
+    stages[name].startedAt = null;
+    if (stages[name].elapsed > 0) updateStageUI(name, 'done');
+    else if (name === 'breakdown') updateStageUI(name, 'waiting');
+    else updateStageUI(name, 'idle');
+  }
+  activeStage = null;
+  
+  // Restore waiting — base from saved state, delay time added separately by caller
+  waitingElapsed = state.waitingElapsed;
+  waitingRunning = false;
+  waitingStartedAt = null;
+  
+  // Restore timed delays
+  for (const id in timedDelays) delete timedDelays[id];
+  for (const [id, val] of Object.entries(state.timedDelays)) {
+    timedDelays[id] = val;
+    document.getElementById(`td-${id}`).classList.add('active');
+    const sel = document.getElementById(`sel-${id}`);
+    sel.textContent = `\u23F1 ${val} min logged`;
+    sel.classList.add('visible');
+  }
+  
+  // Restore all chip selections
+  document.querySelectorAll('#garmentChips .chip').forEach(c => {
+    if (state.selectedGarments.includes(c.textContent.trim())) c.classList.add('selected');
+    else c.classList.remove('selected');
+  });
+  document.querySelectorAll('#activities .chip').forEach(c => {
+    if (state.selectedActivities.includes(c.textContent.trim())) c.classList.add('selected');
+    else c.classList.remove('selected');
+  });
+  document.querySelectorAll('#delays .chip').forEach(c => {
+    if (state.selectedDelays.includes(c.textContent.trim())) { c.classList.add('selected', 'orange'); }
+    else c.classList.remove('selected', 'orange');
+  });
+  document.querySelectorAll('#problems .chip').forEach(c => {
+    if (state.selectedProblems.includes(c.textContent.trim())) { c.classList.add('selected', 'red'); }
+    else c.classList.remove('selected', 'red');
+  });
+  
+  const anyDelay = document.querySelectorAll('#delays .chip.selected').length > 0;
+  document.getElementById('waitingBlock').classList.toggle('active', anyDelay);
+}
+
+function getBgDelaySeconds() {
+  // Total background delay: locked amount + any still-running time
+  let total = bgDelayLocked;
+  if (bgDelayStart && !bgDelayIsResolved) {
+    total += Math.floor((Date.now() - bgDelayStart) / 1000);
+  }
+  return total;
+}
+
+function pauseAndSwitch() {
+  const order = document.getElementById('orderNum').value;
+  if (!order) {
+    showToast('Enter an order # before pausing', true);
+    return;
+  }
+  
+  // Freeze any running stage timer
+  if (activeStage && stages[activeStage].running) {
+    stages[activeStage].elapsed += Math.floor((Date.now() - stages[activeStage].startedAt) / 1000);
+    stages[activeStage].running = false;
+    stages[activeStage].startedAt = null;
+  }
+  // Freeze waiting timer into waitingElapsed
+  if (waitingRunning) {
+    waitingElapsed += Math.floor((Date.now() - waitingStartedAt) / 1000);
+    waitingRunning = false;
+    waitingStartedAt = null;
+  }
+  
+  // Get delay reason from form
+  const delayChips = Array.from(document.querySelectorAll('#delays .chip.selected'))
+    .map(c => c.textContent.replace(/^\d+\s+/, '').trim());
+  const delayReason = delayChips.length > 0 ? delayChips.join(', ') : null;
+  
+  // Save full form state
+  pausedJob = captureFormState();
+  pausedJob.delayReason = delayReason;
+  
+  // Background delay: only start a NEW one if there isn't one already running
+  if (!bgDelayStart || bgDelayIsResolved) {
+    bgDelayStart = delayReason ? Date.now() : null;
+    bgDelayLocked = 0;
+    bgDelayIsResolved = false;
+  }
+  // If bgDelayStart is already running and not resolved, it just keeps going
+  
+  // Show banner
+  document.getElementById('pausedOrderNum').textContent = pausedJob.order;
+  document.getElementById('pausedBanner').classList.add('visible');
+  
+  const delayRow = document.getElementById('pausedDelayRow');
+  const showDelay = delayReason && bgDelayStart;
+  if (showDelay) {
+    document.getElementById('pausedDelayReason').textContent = pausedJob.delayReason;
+    delayRow.classList.add('visible');
+    if (!bgDelayIsResolved) {
+      document.getElementById('pausedResolvedBtn').classList.remove('done');
+      document.getElementById('pausedResolvedBtn').textContent = 'Resolved \u2713';
+    }
+  } else {
+    delayRow.classList.remove('visible');
+  }
+  
+  document.body.style.paddingTop = showDelay ? '90px' : '52px';
+  
+  resetForm();
+  showToast(`Job ${pausedJob.order} paused \u2014 start new job`, false);
+}
+
+function delayResolved() {
+  if (bgDelayIsResolved || !bgDelayStart) return;
+  
+  bgDelayLocked = Math.floor((Date.now() - bgDelayStart) / 1000);
+  bgDelayIsResolved = true;
+  bgDelayStart = null;
+  
+  const btn = document.getElementById('pausedResolvedBtn');
+  btn.classList.add('done');
+  btn.textContent = `\u2713 Resolved at ${formatTime(bgDelayLocked)}`;
+  
+  showToast(`Delay resolved \u2014 ${formatTime(bgDelayLocked)} logged to Job ${pausedJob.order}`, false);
+}
+
+function resumePausedJob() {
+  if (!pausedJob) return;
+  
+  document.getElementById('modalOverlay').classList.remove('visible');
+  
+  const saved = pausedJob;
+  const delaySeconds = getBgDelaySeconds();
+  const delayStillRunning = bgDelayStart && !bgDelayIsResolved;
+  
+  pausedJob = null;
+  
+  // Hide banner
+  document.getElementById('pausedBanner').classList.remove('visible');
+  document.getElementById('pausedDelayRow').classList.remove('visible');
+  document.body.style.paddingTop = '0';
+  
+  // Restore the form
+  restoreFormState(saved);
+  
+  if (delayStillRunning) {
+    // Delay NOT resolved — keep the waiting timer running on the form
+    // Set waitingStartedAt to the original bgDelayStart so it shows total time
+    waitingRunning = true;
+    waitingStartedAt = bgDelayStart;
+    document.getElementById('waitingBlock').classList.add('active');
+    // Don't clear bg state — if they pause again it keeps going
+    showToast(`Job ${saved.order} resumed (delay still timing)`, false);
+  } else if (bgDelayIsResolved && bgDelayLocked > 0) {
+    // Delay was resolved — add locked time to waitingElapsed
+    waitingElapsed += bgDelayLocked;
+    // Clear bg state
+    bgDelayStart = null;
+    bgDelayLocked = 0;
+    bgDelayIsResolved = false;
+    showToast(`Job ${saved.order} resumed (+${formatTime(delaySeconds)} delay added)`, false);
+  } else {
+    // No delay was tracked
+    bgDelayStart = null;
+    bgDelayLocked = 0;
+    bgDelayIsResolved = false;
+    showToast(`Job ${saved.order} resumed`, false);
+  }
+  
+  window.scrollTo(0, 0);
+}
+
+function closePausedJob() {
+  if (!pausedJob) return;
+  
+  document.getElementById('modalOverlay').classList.remove('visible');
+  
+  const saved = pausedJob;
+  const delaySeconds = getBgDelaySeconds();
+  
+  pausedJob = null;
+  
+  document.getElementById('pausedBanner').classList.remove('visible');
+  document.getElementById('pausedDelayRow').classList.remove('visible');
+  document.body.style.paddingTop = '0';
+  
+  const now = new Date();
+  const timedDelayLabels = {
+    registration: 'Registration problems', ink: 'Ink issues',
+    lint: 'Lint on garments', screen: "Screen won't clear",
+    sticking: 'Ink sticking/clogged', misprint: 'Misprint/reprint', stains: 'Stains on garments'
+  };
+  const activeDelaysList = Object.entries(saved.timedDelays)
+    .filter(([k,v]) => v > 0)
+    .map(([k,v]) => `${timedDelayLabels[k]} (${v}min)`)
+    .join(', ');
+  const totalTimedDelayMin = Object.values(saved.timedDelays).reduce((a,b) => a+b, 0);
+  
+  function getSavedStageMin(name) {
+    return Math.round(saved.stages[name].elapsed / 60 * 10) / 10;
+  }
+  
+  const totalWaiting = saved.waitingElapsed + delaySeconds;
+  
+  const data = {
+    timestamp: now.toISOString(),
+    date: `${now.getMonth()+1}/${now.getDate()}/${now.getFullYear()}`,
+    time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    order: saved.order,
+    screens: saved.screens,
+    pieceCount: saved.pieceCount,
+    garmentType: saved.selectedGarments.join(', '),
+    operator: saved.operator,
+    press: saved.press,
+    doubleHit: saved.doubleHit ? 'Yes' : 'No',
+    breakdownMin: getSavedStageMin('breakdown'),
+    prepMin: getSavedStageMin('prep'),
+    registrationMin: getSavedStageMin('registration'),
+    sampleMin: getSavedStageMin('sample'),
+    runMin: getSavedStageMin('run'),
+    breakMin: getSavedStageMin('break'),
+    totalSetupMin: Math.round((saved.stages.breakdown.elapsed + saved.stages.prep.elapsed + saved.stages.registration.elapsed + saved.stages.sample.elapsed) / 60 * 10) / 10,
+    waitingMin: Math.round(totalWaiting / 60 * 10) / 10,
+    timedDelayMin: totalTimedDelayMin,
+    activities: saved.selectedActivities.join(', '),
+    delays: saved.selectedDelays.join(', '),
+    activeDelays: activeDelaysList,
+    problems: saved.selectedProblems.join(', ')
+  };
+  
+  fetch('https://script.google.com/macros/s/AKfycbyWg6MvXKZtIWyqzL1_wyXmB4BR5xLRt_mjdYUj_nMEynj0lR5TIFdsNmjlRCI56Tmjtw/exec', {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify(data)
+  }).then(() => {
+    showToast(`\u2713 Job ${saved.order} closed and submitted`, false);
+  }).catch(() => {
+    showToast(`\u2717 Failed to submit job ${saved.order}`, true);
+  });
+  
+  // Clear bg state
+  bgDelayStart = null;
+  bgDelayLocked = 0;
+  bgDelayIsResolved = false;
+}
+
+// ===== DOUBLE HIT TOGGLE =====
+let isDoubleHit = false;
+function toggleDoubleHit() {
+  isDoubleHit = !isDoubleHit;
+  document.getElementById('doubleHitToggle').classList.toggle('on', isDoubleHit);
+}
+
+// ===== SUBMIT =====
+function showToast(msg, isError) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => { toast.className = 'toast'; }, 3000);
+}
+
+function getSelectedChips(containerId) {
+  return Array.from(document.querySelectorAll(`#${containerId} .chip.selected`))
+    .map(c => c.textContent.trim());
+}
+
+function getStageSeconds(name) {
+  let total = stages[name].elapsed;
+  if (stages[name].running) total += Math.floor((Date.now() - stages[name].startedAt) / 1000);
+  return total;
+}
+
+function submitLog() {
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const now = new Date();
+  
+  // Stop any running timers
+  if (activeStage && stages[activeStage].running) {
+    toggleStage(activeStage);
+  }
+  if (waitingRunning) {
+    waitingElapsed += Math.floor((Date.now() - waitingStartedAt) / 1000);
+    waitingRunning = false;
+  }
+
+  const timedDelayLabels = {
+    registration: 'Registration problems',
+    ink: 'Ink issues',
+    lint: 'Lint on garments',
+    screen: "Screen won't clear",
+    sticking: 'Ink sticking/clogged',
+    misprint: 'Misprint/reprint',
+    stains: 'Stains on garments'
+  };
+  
+  const activeDelaysList = Object.entries(timedDelays)
+    .filter(([k,v]) => v > 0)
+    .map(([k,v]) => `${timedDelayLabels[k]} (${v}min)`)
+    .join(', ');
+  
+  const totalTimedDelayMin = Object.values(timedDelays).reduce((a,b) => a+b, 0);
+
+    const data = {
+    timestamp: now.toISOString(),
+    date: `${now.getMonth()+1}/${now.getDate()}/${now.getFullYear()}`,
+    time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    order: document.getElementById('orderNum').value,
+    screens: document.getElementById('screens').value,
+    pieceCount: document.getElementById('pieceCount').value,
+    garmentType: getSelectedChips('garmentChips').join(', '),
+    operator: document.getElementById('operator').value,
+    press: document.getElementById('press').value,
+    doubleHit: isDoubleHit ? 'Yes' : 'No',
+    breakdownMin: Math.round(getStageSeconds('breakdown') / 60 * 10) / 10,
+    prepMin: Math.round(getStageSeconds('prep') / 60 * 10) / 10,
+    registrationMin: Math.round(getStageSeconds('registration') / 60 * 10) / 10,
+    sampleMin: Math.round(getStageSeconds('sample') / 60 * 10) / 10,
+    runMin: Math.round(getStageSeconds('run') / 60 * 10) / 10,
+    breakMin: Math.round(getStageSeconds('break') / 60 * 10) / 10,
+    totalSetupMin: Math.round((getStageSeconds('breakdown') + getStageSeconds('prep') + getStageSeconds('registration') + getStageSeconds('sample')) / 60 * 10) / 10,
+    waitingMin: Math.round(waitingElapsed / 60 * 10) / 10,
+    timedDelayMin: totalTimedDelayMin,
+    activities: getSelectedChips('activities').join(', '),
+    activityOther: document.getElementById('activityOtherText').value || '',
+    delays: getSelectedChips('delays').join(', '),
+    delayOther: document.getElementById('delayOtherText').value || '',
+    activeDelays: activeDelaysList,
+    problems: getSelectedChips('problems').join(', '),
+    problemOther: document.getElementById('problemOtherText').value || ''
+  };
+
+  // POST to Google Apps Script
+  // REPLACE THIS URL with your deployed Apps Script web app URL
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyWg6MvXKZtIWyqzL1_wyXmB4BR5xLRt_mjdYUj_nMEynj0lR5TIFdsNmjlRCI56Tmjtw/exec';
+
+  if (SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+    // Demo mode - show the data that would be sent
+    console.log('Would submit:', data);
+    showToast('✓ Demo mode — see console for data', false);
+    btn.disabled = false;
+    btn.textContent = 'Submit Job Log';
+    return;
+  }
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify(data)
+  })
+  .then(() => {
+    showToast('✓ Job logged successfully!', false);
+    resetForm();
+    // Check if there's a paused job waiting
+    if (pausedJob) {
+      setTimeout(() => {
+        document.getElementById('modalOrderNum').textContent = pausedJob.order;
+        document.getElementById('modalOverlay').classList.add('visible');
+      }, 500);
+    }
+  })
+  .catch(err => {
+    showToast('✗ Failed to submit — check connection', true);
+    console.error(err);
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btn.textContent = 'Submit Job Log';
+  });
+}
+
+function resetForm() {
+  // Clear job info fields
+  document.getElementById('orderNum').value = '';
+  document.getElementById('screens').value = '';
+  document.getElementById('pieceCount').value = '';
+  document.getElementById('press').value = '';
+  // Keep operator selected
+  isDoubleHit = false;
+  document.getElementById('doubleHitToggle').classList.remove('on');
+  
+  // Reset all timers
+  for (const name in stages) {
+    stages[name] = { elapsed: 0, running: false, startedAt: null };
+    if (name === 'breakdown') updateStageUI(name, 'waiting');
+    else updateStageUI(name, 'idle');
+  }
+  activeStage = null;
+  waitingElapsed = 0;
+  waitingRunning = false;
+  waitingStartedAt = null;
+  document.getElementById('waitingTimer').textContent = '0:00';
+  document.getElementById('waitingBlock').classList.remove('active');
+  
+  // Reset ALL chips everywhere — garments, activities, delays, problems
+  document.querySelectorAll('.chip.selected').forEach(c => {
+    c.classList.remove('selected', 'orange', 'red');
+  });
+
+  // Reset write-in blocks
+  ['activityOther', 'delayOther', 'problemOther'].forEach(key => {
+    document.getElementById(key + 'Block').classList.remove('visible');
+    document.getElementById(key + 'Text').value = '';
+  });
+  
+  // Reset timed delays
+  for (const id in timedDelays) delete timedDelays[id];
+  document.querySelectorAll('.timed-delay-item').forEach(el => {
+    el.classList.remove('active');
+    el.querySelector('.time-picker').classList.remove('open');
+    el.querySelector('.time-picker').querySelectorAll('button').forEach(b => b.classList.remove('picked'));
+    const sel = el.querySelector('.timed-delay-selected');
+    if (sel) { sel.classList.remove('visible'); sel.textContent = ''; }
+  });
+  
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
